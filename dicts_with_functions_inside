@@ -1,0 +1,106 @@
+import imgaug as ia
+from imgaug import augmenters as iaa
+import sys, os
+sys.path.append("src")
+from PIL import Image
+import numpy
+import random
+
+# PLEASE CHECK!
+# https://imgaug.readthedocs.io/en/latest/source/augmenters.html
+# OR
+# https://github.com/aleju/imgaug
+# TO SEE HOW GIVEN FUNCTION WORKS AND HOW ITS PARAMETERS BEHAVE
+
+
+path = "/home/wszweda/PycharmProjects/globalEnvLego/test_imgs"
+print("Reading images from '{}' directory...\n".format(path))
+
+
+def randrange360():
+    return random.randrange(0, 360)
+
+def runFunctionsInDict(dictionary: dict):
+    for k, v in dictionary.items():
+        if callable(v):
+            dictionary[k] = v()
+    return dictionary
+
+# List of augmentation methods and corresponding parameters in dictionary
+methods = [iaa.ContrastNormalization,
+           iaa.CoarseDropout,
+           iaa.JpegCompression,
+           iaa.GaussianBlur,
+           iaa.MotionBlur,
+           iaa.Grayscale,
+           iaa.CloudLayer,
+           iaa.Fliplr,
+           iaa.EdgeDetect]
+
+method_params = {'ContrastNormalization': {'alpha': (2, 2.4)},
+                 'CoarseDropout': {'p': 0.07, 'size_percent': 0.001},
+                 'JpegCompression': {'compression': 80},
+                 'GaussianBlur': {'sigma': 3},
+                 'MotionBlur': {'k': 100, 'angle': randrange360},
+                 'Grayscale': {'alpha': 0.5},
+                 'CloudLayer': {'alpha_min': 0.2, 'alpha_multiplier': 0.5, 'alpha_size_px_max': (2, 8),
+                                'alpha_freq_exponent': (-4, -2), 'intensity_mean': (220, 255),
+                                'intensity_freq_exponent': (-2.5, -1.5), 'intensity_coarse_scale': 2,
+                                'density_multiplier': (0.4, 0.9), 'sparsity': 0.9},
+                 'Fliplr': {'p': 1},
+                 'EdgeDetect': {'alpha': (0.8, 1.0)}
+                 }
+
+
+def call_method(method, **kwargs):
+    seq = iaa.OneOf([method(**kwargs)])
+    output_path = "/home/wszweda/PycharmProjects/globalEnvLego/output_imgaug_test/{}/".format(method.__name__)
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+    img_augm = seq.augment_image(img)
+    img_augm = Image.fromarray(img_augm)
+    try:
+        img_augm.save(output_path + head, ext[1:])
+    except KeyError:
+        img_augm.save(output_path + head, "JPEG")
+
+
+#PEFROM AUGMENTATION ON SINGLE IMAGES FROM DIR
+for f in os.listdir(path):
+
+    # Process filename
+    filename = os.path.splitext(f)  # filename in directory
+    filename_full = os.path.join(path, f)  # full path filename
+    head, ext = filename[0], filename[1]
+    if ext.lower() not in [".jpg", ".jpeg", ".png"]:
+        continue
+
+    # Read image file
+    img = numpy.asarray(Image.open(filename_full))
+
+
+    for method in methods:
+        #print(method_params[str(method.__name__)])
+        single_method_params = method_params[str(method.__name__)].copy()
+        single_method_params = runFunctionsInDict(single_method_params)
+        call_method(method,**single_method_params)
+
+
+
+
+
+
+
+
+
+
+    '''
+    def save_augmented_image(output_path):
+        img_augm = seq.augment_image(img)
+        img_augm = Image.fromarray(img_augm)
+        img_augm.save(output_path + head + ext)
+
+    seq=iaa.OneOf([iaa.CoarseDropout(0.3,size_percent=0.05)])
+    output_path = "/home/wszweda/PycharmProjects/globalEnvLego/output_imgaug_test/coarse_dropout/"
+    save_augmented_image(output_path)
+    '''
